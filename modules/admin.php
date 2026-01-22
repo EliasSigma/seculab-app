@@ -9,22 +9,9 @@
  */
 
 $isAdmin = false;
-$flagFound = false;
 
-// VULNÉRABILITÉ : Vérification basée sur un cookie modifiable par l'utilisateur !
-if (isset($_COOKIE['is_admin']) && $_COOKIE['is_admin'] === 'true') {
-    $isAdmin = true;
-    $flagFound = true;
-}
-
-// Vérification alternative via un champ caché (aussi vulnérable)
-if (isset($_POST['admin_check']) && $_POST['admin_check'] === '1') {
-    $isAdmin = true;
-    $flagFound = true;
-}
-
-// La "vraie" vérification (que les étudiants devront implémenter)
-// $isAdmin = isLoggedIn() && $_SESSION['is_admin'] === 1;
+// CORRECTION : Vérification côté serveur via $_SESSION
+$isAdmin = isLoggedIn() && isset($_SESSION['is_admin']) && $_SESSION['is_admin'] == 1;
 ?>
 
 <div class="container">
@@ -45,22 +32,9 @@ if (isset($_POST['admin_check']) && $_POST['admin_check'] === '1') {
                 <div class="lock-icon">🔒</div>
                 <h2>Accès Refusé</h2>
                 <p>Cette zone est réservée aux administrateurs.</p>
-                <p class="small-hint">Cookie <code>is_admin</code> : <?= isset($_COOKIE['is_admin']) ? htmlspecialchars($_COOKIE['is_admin']) : 'non défini' ?></p>
-                
-                <!-- VULNÉRABILITÉ : Formulaire avec champ caché modifiable -->
-                <form method="POST" class="hidden-form">
-                    <input type="hidden" name="admin_check" value="0">
-                    <p class="small-hint">Ou inspectez ce formulaire... 👀</p>
-                    <button type="submit" class="btn btn-secondary">Vérifier mon accès</button>
-                </form>
+                <p>Vous devez être connecté avec un compte administrateur pour accéder à cette page.</p>
             </div>
         <?php else: ?>
-            <?php if ($flagFound): ?>
-                <div class="alert alert-success">
-                    <p>🏆 Bravo ! Vous avez contourné la vérification admin.</p>
-                    <p><strong>FLAG Logic Error :</strong> <?= SECRET_LOGIC ?></p>
-                </div>
-            <?php endif; ?>
             
             <div class="admin-panel">
                 <h2>👑 Bienvenue, Administrateur !</h2>

@@ -1,5 +1,4 @@
-# VULNÉRABILITÉ VOLONTAIRE : Ce .htaccess est faible
-# Les étudiants devront le renforcer en Phase 2
+# CORRECTION : .htaccess sécurisé pour protéger les fichiers sensibles
 
 # URL Rewriting pour le routeur
 RewriteEngine On
@@ -7,27 +6,39 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]
 
-# PROBLÈME : Le fichier .env est accessible directement !
-# Solution : Ajouter cette règle
-# <Files ".env">
-#     Require all denied
-# </Files>
+# CORRECTION : Protection du fichier .env
+<Files ".env">
+    Require all denied
+</Files>
 
-# PROBLÈME : La base SQLite est accessible !
-# Solution : Ajouter cette règle
-# <Files "*.sqlite">
-#     Require all denied
-# </Files>
+# CORRECTION : Protection de la base SQLite
+<Files "*.sqlite">
+    Require all denied
+</Files>
 
-# PROBLÈME : Les signatures serveur sont visibles
-# Solution : Décommenter ces lignes
-# ServerSignature Off
-# Header unset X-Powered-By
+# CORRECTION : Cacher les signatures serveur
+ServerSignature Off
+Header unset X-Powered-By
 
-# PROBLÈME : Pas de protection contre le clickjacking
-# Solution : Ajouter cette ligne
-# Header always set X-Frame-Options "SAMEORIGIN"
+# CORRECTION : Protection contre le clickjacking
+Header always set X-Frame-Options "SAMEORIGIN"
 
-# PROBLÈME : Pas de Content Security Policy
-# Solution : Ajouter une CSP stricte
-# Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com"
+# CORRECTION : Content Security Policy
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com"
+
+# Headers de sécurité supplémentaires
+Header set X-Content-Type-Options "nosniff"
+Header set X-XSS-Protection "1; mode=block"
+
+# Désactiver l'affichage des erreurs PHP en production
+php_flag display_errors Off
+php_flag display_startup_errors Off
+
+# Empêcher l'affichage du contenu des répertoires
+Options -Indexes
+
+# Bloquer l'accès aux fichiers de sauvegarde et sensibles
+<FilesMatch "\.(bak|backup|old|orig|save|swp|config|ini|log)$">
+    Require all denied
+</FilesMatch>
+

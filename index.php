@@ -29,21 +29,27 @@ $routes = [
     '/sql'      => 'modules/sqlquery.php',
 ];
 
-// Inclusion du header
-include __DIR__ . '/includes/header.php';
-
-// Dispatch vers le bon module
+// Dispatch vers le bon module (AVANT le header pour permettre les redirections)
 if (isset($routes[$path])) {
     $file = __DIR__ . '/' . $routes[$path];
     if (file_exists($file)) {
+        // Capturer la sortie du module pour l'afficher après le header
+        ob_start();
         include $file;
+        $content = ob_get_clean();
     } else {
-        echo '<div class="container"><h1>Module en construction...</h1></div>';
+        $content = '<div class="container"><h1>Module en construction...</h1></div>';
     }
 } else {
     http_response_code(404);
-    echo '<div class="container"><h1>404 - Page non trouvée</h1></div>';
+    $content = '<div class="container"><h1>404 - Page non trouvée</h1></div>';
 }
+
+// Inclusion du header APRÈS l'exécution du module
+include __DIR__ . '/includes/header.php';
+
+// Afficher le contenu du module
+echo $content;
 
 // Inclusion du footer
 include __DIR__ . '/includes/footer.php';

@@ -16,18 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message'])) {
     $message = $_POST['message'];
     
     if (!empty($message)) {
-        // VULNÉRABILITÉ : Le message est stocké tel quel, sans nettoyage !
+        // CORRECTION : Le message est maintenant affiché de manière sécurisée avec htmlspecialchars
         $stmt = $db->prepare('INSERT INTO wall_posts (content, author) VALUES (?, ?)');
         $author = isLoggedIn() ? $_SESSION['username'] : 'Anonyme';
         $stmt->execute([$message, $author]);
         
-        // Détection de XSS pour afficher le flag
-        if (preg_match('/<script|javascript:|onerror|onload|onclick/i', $message)) {
-            flash('success', '🏆 XSS détecté ! FLAG : ' . SECRET_XSS);
-        } else {
-            flash('success', 'Message posté !');
-        }
-        
+        flash('success', 'Message posté !');
         redirect('/wall');
     } else {
         $error = "Le message ne peut pas être vide.";
@@ -81,9 +75,8 @@ $posts = $db->query('SELECT * FROM wall_posts ORDER BY created_at DESC LIMIT 50'
                         </div>
                         <div class="post-content">
                             <?php 
-                            // VULNÉRABILITÉ : Pas d'échappement HTML !
-                            // À corriger avec : htmlspecialchars($post['content'], ENT_QUOTES, 'UTF-8')
-                            echo $post['content']; 
+                            // CORRECTION : Échappement HTML pour prévenir les XSS
+                            echo htmlspecialchars($post['content'], ENT_QUOTES, 'UTF-8'); 
                             ?>
                         </div>
                     </div>

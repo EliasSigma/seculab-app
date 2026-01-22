@@ -8,11 +8,17 @@
  *    Vous pouvez voir n'importe quel profil en changeant l'ID !
  */
 
-// VULNÉRABILITÉ : Pas de vérification que l'utilisateur a le droit de voir ce profil
+// CORRECTION : Vérification d'autorisation côté serveur
 $requestedId = $_GET['id'] ?? null;
 
-// Si pas d'ID spécifié et utilisateur connecté, rediriger vers son propre profil avec l'ID dans l'URL
-if ($requestedId === null && isLoggedIn()) {
+// Rediriger les utilisateurs non connectés
+if (!isLoggedIn()) {
+    flash('error', 'Vous devez être connecté pour voir les profils.');
+    redirect('/auth');
+}
+
+// Si pas d'ID spécifié, rediriger vers son propre profil
+if ($requestedId === null) {
     header('Location: /profile?id=' . $_SESSION['user_id']);
     exit;
 }
@@ -21,12 +27,18 @@ $profile = null;
 $isOwnProfile = false;
 
 if ($requestedId) {
-    // VULNÉRABILITÉ : Accès direct sans contrôle d'autorisation !
+    // CORRECTION : Vérifier que l'utilisateur ne consulte que son propre profil
+    // Ou qu'il est administrateur
+    if ($_SESSION['user_id'] != $requestedId && !$_SESSION['is_admin']) {
+        flash('error', 'Accès refusé : vous ne pouvez consulter que votre propre profil.');
+        redirect('/profile?id=' . $_SESSION['user_id']);
+    }
+    
     $stmt = $db->prepare('SELECT id, username, bio, is_admin FROM users WHERE id = ?');
     $stmt->execute([$requestedId]);
     $profile = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    $isOwnProfile = isLoggedIn() && $_SESSION['user_id'] == $requestedId;
+    $isOwnProfile = $_SESSION['user_id'] == $requestedId;
 }
 ?>
 
@@ -57,12 +69,7 @@ if ($requestedId) {
                     <p class="bio-content"><?= htmlspecialchars($profile['bio']) ?></p>
                 </div>
                 
-                <?php if ($profile['is_admin'] && !$isOwnProfile): ?>
-                    <div class="alert alert-success">
-                        <p>🏆 Bravo ! Vous avez accédé au profil admin sans autorisation.</p>
-                        <p><strong>FLAG IDOR :</strong> <?= SECRET_IDOR ?></p>
-                    </div>
-                <?php endif; ?>
+
             </div>
         <?php else: ?>
             <div class="alert alert-info">

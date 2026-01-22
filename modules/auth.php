@@ -19,40 +19,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
 
-    if(in_array($username, ["admin' --", "admin' OR '1'='1", "admin' OR 1=1 --", "admin' OR 1=1"])) {
-      $error = "Bien essayé ! Mais non...";   
-    } else {
-        // VULNÉRABILITÉ : Concaténation directe dans la requête SQL !
-        // Un attaquant peut injecter du SQL via le champ username
-        $query = "SELECT * FROM users WHERE username = '$username' AND password = '" . md5($password) . "'";
+    // CORRECTION : Utilisation de requêtes préparées PDO
+    try {
+        $stmt = $db->prepare("SELECT * FROM users WHERE username = ? AND password = ?");
+        $stmt->execute([$username, md5($password)]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        try {
-            $result = $db->query($query);
-            $users = $result->fetchAll(PDO::FETCH_ASSOC);
-            usort($users, fn($a, $b) => $b['id'] - $a['id']); // Tri DESC par ID
-            $user = $users[0] ?? null;
+        if ($user) {
+            // Création de la session
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['is_admin'] = $user['is_admin'] ?? 0;
             
-            if ($user) {
-                // Création de la session
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['is_admin'] = $user['is_admin'] ?? 0;
-                
-                flash('success', 'Connexion réussie ! Bienvenue ' . $user['username']);
-                
-                // Si c'est une injection UNION, afficher le résultat
-                if (strpos(strtolower($username), 'union') !== false) {
-                    $success = "🏆 FLAG SQL Injection : " . SECRET_SQLI;
-                }
-                
-                redirect('/');
-            } else {
-                $error = "Identifiants incorrects.";
-            }
-        } catch (PDOException $e) {
-            // Affichage de l'erreur SQL (aide au debug pour l'étudiant)
-            $error = "Erreur SQL : " . $e->getMessage();
+            flash('success', 'Connexion réussie ! Bienvenue ' . htmlspecialchars($user['username']));
+            redirect('/');
+        } else {
+            $error = "Identifiants incorrects.";
         }
+    } catch (PDOException $e) {
+        $error = "Erreur de connexion.";
+        error_log("Erreur SQL : " . $e->getMessage());
     }
 
 }
